@@ -115,20 +115,7 @@ public class server {
         server s = new server();
         s.init();
 
-            /*
-            //Response
-            var response = "<html><body><h1>Hola a todos</h1></body></html>";
-            writer.write("HTTP/1.1 200 OK\r\n");
-            writer.write("Content-Type: text/html\r\n");
-            writer.write("Content-Length: " + response.length()+"\r\n");
-            writer.write("Connection: close\r\n");
-            writer.write("\r\n");
-            writer.write(response);
-
-            writer.close();
-            socket.close();
-
-             */
+           
 
     }
 }
