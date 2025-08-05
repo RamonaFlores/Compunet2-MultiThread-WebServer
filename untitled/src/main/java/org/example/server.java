@@ -51,61 +51,64 @@ public class server {
         }
     }
     public void sendResponse(Socket socket, String resource) throws IOException {
-        var file = new File("");
-        System.out.println(file.getAbsolutePath());
+        var basePath = new File("").getAbsolutePath();
         var res = new File("untitled/resources/" + resource);
-        var contentType=contentType(resource);
-        System.out.println(res.getAbsolutePath());
-        var writer = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
+        String contentType = contentType(resource);
+        OutputStream out = socket.getOutputStream();
+        BufferedOutputStream dataOut = new BufferedOutputStream(out);
 
         if (res.exists()) {
+            System.out.println("[200 OK] Archivo encontrado: " + res.getAbsolutePath());
 
+            long fileLength = res.length();
+            String header = "HTTP/1.1 200 OK\r\n" +
+                    "Content-Type: " + contentType + "\r\n" +
+                    "Content-Length: " + fileLength + "\r\n" +
+                    "Connection: close\r\n\r\n";
+            dataOut.write(header.getBytes());
 
-            var fis = new FileInputStream(res);
-            var br = new BufferedReader(new InputStreamReader(fis));
-            String line;
-            StringBuilder response = new StringBuilder();
-            while ((line = br.readLine()) != null) {
-                response.append(line);
+            FileInputStream fileIn = new FileInputStream(res);
+            byte[] buffer = new byte[4096];
+            int bytesRead;
+            while ((bytesRead = fileIn.read(buffer)) != -1) {
+                dataOut.write(buffer, 0, bytesRead);
             }
 
-            //Response
-
-            writer.write("HTTP/1.1 200 OK\r\n");
-            writer.write("Content-Type:"+contentType+"\r\n");
-            writer.write("Content-Length: " + response.length() + "\r\n");
-            writer.write("Connection: close\r\n");
-            writer.write("\r\n");
-            writer.write(response.toString());
-
-            writer.close();
-            socket.close();
-
+            fileIn.close();
         } else {
-            String response = "";
+            System.out.println("[ERROR 404] Archivo no encontrado: " + res.getAbsolutePath());
+            String errorHtml = "<html><body><h1>404 - Archivo no encontrado</h1></body></html>";
+            byte[] errorBytes = errorHtml.getBytes("UTF-8");
 
-            //Manejar error
-            System.out.println("no se encuentra ningún archivo");
-            writer.write("HTTP/1.1 404 Not Found\r\n");
-            writer.write("Content-Type:"+contentType+"\r\n");
-            writer.write("Content-Length: 0\r\n");
-            writer.write("Connection: close\r\n");
-            writer.write("\r\n");
-            writer.write(response);
-            writer.close();
-            socket.close();
+            String header = "HTTP/1.1 404 Not Found\r\n" +
+                    "Content-Type: text/html\r\n" +
+                    "Content-Length: " + errorBytes.length + "\r\n" +
+                    "Connection: close\r\n\r\n";
+            dataOut.write(header.getBytes());
+            dataOut.write(errorBytes);
         }
+
+        dataOut.flush();
+        socket.close();
     }
     private static String contentType(String nombreArchivo) {
-        if(nombreArchivo.endsWith(".htm") || nombreArchivo.endsWith(".html")) {
-            return "text/html";
-        }
-        if(nombreArchivo.endsWith(".jpg")) {
-            return "image/jpeg";
-        }
-        if(nombreArchivo.endsWith(".gif")) {
-            return "image/gif";
-        }
+        String lowerName = nombreArchivo.toLowerCase();
+
+        if (lowerName.endsWith(".html") || lowerName.endsWith(".htm")) return "text/html";
+        if (lowerName.endsWith(".css")) return "text/css";
+        if (lowerName.endsWith(".js")) return "application/javascript";
+        if (lowerName.endsWith(".json")) return "application/json";
+        if (lowerName.endsWith(".jpg") || lowerName.endsWith(".jpeg")) return "image/jpeg";
+        if (lowerName.endsWith(".png")) return "image/png";
+        if (lowerName.endsWith(".gif")) return "image/gif";
+        if (lowerName.endsWith(".ico")) return "image/x-icon";
+        if (lowerName.endsWith(".svg")) return "image/svg+xml";
+        if (lowerName.endsWith(".woff")) return "font/woff";
+        if (lowerName.endsWith(".woff2")) return "font/woff2";
+        if (lowerName.endsWith(".ttf")) return "font/ttf";
+        if (lowerName.endsWith(".pdf")) return "application/pdf";
+
+        // Por defecto, binario genérico
         return "application/octet-stream";
     }
     public static void main(String[] args) throws IOException {
